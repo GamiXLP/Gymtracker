@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "gymtracker.db"
 
 STUDIO_SLUG = "ai-fitness-friedrichshafen"
-OUTPUT_BASE = BASE_DIR / "studios"
+OUTPUT_BASE = BASE_DIR / "studios" / STUDIO_SLUG
 
 WEEKDAY_NAMES = {
     0: "monday",
@@ -48,32 +48,65 @@ def load_data() -> pd.DataFrame:
     return df
 
 
-def create_month_graph(df: pd.DataFrame, year: int, month: int, output_dir: Path) -> None:
-    month_df = df[(df["year"] == year) & (df["month"] == month)]
-
-    if month_df.empty:
-        return
+def save_line_graph(
+    x,
+    y,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    output_file: Path,
+    rotate_x: bool = False,
+) -> None:
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     plt.figure(figsize=(14, 6))
-    plt.plot(month_df["timestamp"], month_df["load_percent"], marker=".", linewidth=1)
+    plt.plot(x, y, marker=".", linewidth=1)
 
-    plt.title(f"Studioauslastung {year}-{month:02d}")
-    plt.xlabel("Datum")
-    plt.ylabel("Auslastung (%)")
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.ylim(0, 100)
     plt.grid(True)
-    plt.tight_layout()
 
-    output_file = output_dir / f"month_{year}-{month:02d}.png"
+    if rotate_x:
+        plt.xticks(rotation=45)
+
+    plt.tight_layout()
     plt.savefig(output_file)
     plt.close()
 
 
-def create_weekday_graphs(df: pd.DataFrame, year: int, month: int, output_dir: Path) -> None:
+def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
     month_df = df[(df["year"] == year) & (df["month"] == month)]
 
     if month_df.empty:
         return
+
+    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+
+    for date, day_df in month_df.groupby("date"):
+        day_df = day_df.sort_values("timestamp")
+
+        output_file = output_dir / f"day_{date}.png"
+
+        save_line_graph(
+            x=day_df["time"],
+            y=day_df["load_percent"],
+            title=f"Tagesverlauf {date}",
+            xlabel="Uhrzeit",
+            ylabel="Auslastung (%)",
+            output_file=output_file,
+            rotate_x=True,
+        )
+
+
+def create_monthly_weekday_average_graphs(df: pd.DataFrame, year: int, month: int) -> None:
+    month_df = df[(df["year"] == year) & (df["month"] == month)]
+
+    if month_df.empty:
+        return
+
+    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
 
     for weekday_number, weekday_name in WEEKDAY_NAMES.items():
         weekday_df = month_df[month_df["weekday"] == weekday_number]
@@ -88,20 +121,51 @@ def create_weekday_graphs(df: pd.DataFrame, year: int, month: int, output_dir: P
             .sort_values("time")
         )
 
-        plt.figure(figsize=(14, 6))
-        plt.plot(avg_df["time"], avg_df["load_percent"], marker=".", linewidth=1)
+        output_file = output_dir / f"weekday_{weekday_name}_{year}-{month:02d}.png"
 
-        plt.title(f"Durchschnittliche Auslastung: {weekday_name.capitalize()} {year}-{month:02d}")
-        plt.xlabel("Uhrzeit")
-        plt.ylabel("Durchschnittliche Auslastung (%)")
-        plt.ylim(0, 100)
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
+        save_line_graph(
+            x=avg_df["time"],
+            y=avg_df["load_percent"],
+            title=f"Durchschnitt aller {weekday_name.capitalize()}e im {year}-{month:02d}",
+            xlabel="Uhrzeit",
+            ylabel="Durchschnittliche Auslastung (%)",
+            output_file=output_file,
+            rotate_x=True,
+        )
 
-        output_file = output_dir / f"weekday_{weekday_name}.png"
-        plt.savefig(output_file)
-        plt.close()
+
+def create_yearly_weekday_average_graphs(df: pd.DataFrame, year: int) -> None:
+    year_df = df[df["year"] == year]
+
+    if year_df.empty:
+        return
+
+    output_dir = OUTPUT_BASE / str(year)
+
+    for weekday_number, weekday_name in WEEKDAY_NAMES.items():
+        weekday_df = year_df[year_df["weekday"] == weekday_number]
+
+        if weekday_df.empty:
+            continue
+
+        avg_df = (
+            weekday_df
+            .groupby("time", as_index=False)["load_percent"]
+            .mean()
+            .sort_values("time")
+        )
+
+        output_file = output_dir / f"weekday_{weekday_name}_{year}.png"
+
+        save_line_graph(
+            x=avg_df["time"],
+            y=avg_df["load_percent"],
+            title=f"Durchschnitt aller {weekday_name.capitalize()}e im Jahr {year}",
+            xlabel="Uhrzeit",
+            ylabel="Durchschnittliche Auslastung (%)",
+            output_file=output_file,
+            rotate_x=True,
+        )
 
 
 def main() -> None:
@@ -115,13 +179,11 @@ def main() -> None:
     year = latest.year
     month = latest.month
 
-    output_dir = OUTPUT_BASE / STUDIO_SLUG / str(year) / f"{month:02d}"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    create_daily_graphs(df, year, month)
+    create_monthly_weekday_average_graphs(df, year, month)
+    create_yearly_weekday_average_graphs(df, year)
 
-    create_month_graph(df, year, month, output_dir)
-    create_weekday_graphs(df, year, month, output_dir)
-
-    print(f"Graphen erstellt unter: {output_dir}")
+    print("Graphen wurden erstellt.")
 
 
 if __name__ == "__main__":
