@@ -63,7 +63,8 @@ def save_line_graph(
     plt.figure(figsize=(14, 6))
     plt.plot(x, y, marker=".", linewidth=1)
 
-    plt.title(title)
+    generated_at = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+    plt.title(f"{title}\nGeneriert: {generated_at}")
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.ylim(0, 100)
