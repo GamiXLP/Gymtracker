@@ -1,6 +1,6 @@
 import asyncio
 import re
-from datetime import datetime
+from datetime import datetime, time
 
 from playwright.async_api import async_playwright
 
@@ -9,6 +9,26 @@ from studios import STUDIOS
 
 
 MAX_CONCURRENT = 5
+
+OPENING_HOURS = {
+    0: (time(6, 0), time(0, 0)),   # Montag
+    1: (time(6, 0), time(0, 0)),   # Dienstag
+    2: (time(6, 0), time(0, 0)),   # Mittwoch
+    3: (time(6, 0), time(0, 0)),   # Donnerstag
+    4: (time(7, 0), time(22, 0)),  # Freitag
+    5: (time(7, 0), time(22, 0)),  # Samstag
+    6: (time(7, 0), time(22, 0)),  # Sonntag
+}
+
+
+def is_currently_open(now: datetime) -> bool:
+    start, end = OPENING_HOURS[now.weekday()]
+    current = now.time()
+
+    if end == time(0, 0):
+        return current >= start
+
+    return start <= current <= end
 
 
 def extract_load_from_text(text: str) -> int | None:
@@ -60,7 +80,14 @@ async def fetch_one_studio(browser, studio: dict, timestamp: str, semaphore: asy
 
 
 async def main_async() -> None:
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now()
+
+    if not is_currently_open(now):
+        print("Studio ist aktuell geschlossen. Es werden keine Daten gesammelt.")
+        return
+
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+
     studios_to_fetch = [studio for studio in STUDIOS if studio["url"]]
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT)
