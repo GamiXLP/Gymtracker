@@ -82,11 +82,11 @@ def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
     if month_df.empty:
         return
 
-    day_str = str(date.day).zfill(2)
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
-
     for date, day_df in month_df.groupby("date"):
         day_df = day_df.sort_values("timestamp")
+
+        day_str = str(date.day).zfill(2)
+        output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
 
         output_file = output_dir / f"day_{date}.png"
 
@@ -106,12 +106,12 @@ def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
     if month_df.empty:
         return
 
-    day_str = str(date.day).zfill(2)
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     for date, day_df in month_df.groupby("date"):
         day_df = day_df.sort_values("timestamp")
+
+        day_str = str(date.day).zfill(2)
+        output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         export_df = day_df[["timestamp", "load_percent"]].copy()
         export_df["timestamp"] = export_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
