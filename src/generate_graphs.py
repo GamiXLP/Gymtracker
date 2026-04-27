@@ -99,6 +99,23 @@ def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
             rotate_x=True,
         )
 
+def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
+    month_df = df[(df["year"] == year) & (df["month"] == month)]
+
+    if month_df.empty:
+        return
+
+    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for date, day_df in month_df.groupby("date"):
+        day_df = day_df.sort_values("timestamp")
+
+        export_df = day_df[["timestamp", "load_percent"]].copy()
+        export_df["timestamp"] = export_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+
+        output_file = output_dir / f"day_{date}.csv"
+        export_df.to_csv(output_file, index=False)
 
 def create_monthly_weekday_average_graphs(df: pd.DataFrame, year: int, month: int) -> None:
     month_df = df[(df["year"] == year) & (df["month"] == month)]
@@ -180,6 +197,7 @@ def main() -> None:
     month = latest.month
 
     create_daily_graphs(df, year, month)
+    create_daily_csv_files(df, year, month)
     create_monthly_weekday_average_graphs(df, year, month)
     create_yearly_weekday_average_graphs(df, year)
 
