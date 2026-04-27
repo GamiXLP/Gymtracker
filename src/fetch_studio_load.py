@@ -1,18 +1,17 @@
+import asyncio
 import re
 from datetime import datetime
 
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 from db import insert_studio_load
 from studios import STUDIOS
 
 
-def fetch_studio_load(page, url: str) -> int | None:
-    page.goto(url, wait_until="networkidle", timeout=60000)
-    page.wait_for_timeout(3000)
+MAX_CONCURRENT = 5
 
-    text = page.locator("body").inner_text()
 
+def extract_load_from_text(text: str) -> int | None:
     match = re.search(r"Aktuelle Auslastung.*?(\d{1,3})\s*%", text, re.DOTALL)
 
     if not match:
@@ -22,49 +21,70 @@ def fetch_studio_load(page, url: str) -> int | None:
         return None
 
     value = int(match.group(1))
+    return value if 0 <= value <= 100 else None
 
-    if value < 0 or value > 100:
-        return None
 
-    return value
+async def fetch_one_studio(browser, studio: dict, timestamp: str, semaphore: asyncio.Semaphore):
+    async with semaphore:
+        slug = studio["slug"]
+        name = studio["name"]
+        url = studio["url"]
+
+        page = await browser.new_page(user_agent="Mozilla/5.0")
+
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            await page.wait_for_timeout(4000)
+
+            text = await page.locator("body").inner_text(timeout=10000)
+            load = extract_load_from_text(text)
+
+            if load is not None:
+                insert_studio_load(
+                    studio_slug=slug,
+                    timestamp=timestamp,
+                    load_percent=load,
+                )
+                print(f"{slug}: {load}% gespeichert.")
+                return True
+
+            print(f"Keine Auslastung gefunden für {slug}.")
+            return False
+
+        except Exception as error:
+            print(f"Fehler bei {name} ({slug}): {error}")
+            return False
+
+        finally:
+            await page.close()
+
+
+async def main_async() -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    studios_to_fetch = [studio for studio in STUDIOS if studio["url"]]
+
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+
+        tasks = [
+            fetch_one_studio(browser, studio, timestamp, semaphore)
+            for studio in studios_to_fetch
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        await browser.close()
+
+    saved_count = sum(1 for result in results if result)
+
+    print("-" * 40)
+    print(f"Fertig. Gespeichert: {saved_count}/{len(studios_to_fetch)}")
 
 
 def main() -> None:
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(user_agent="Mozilla/5.0")
-
-        for studio in STUDIOS:
-            slug = studio["slug"]
-            name = studio["name"]
-            url = studio["url"]
-
-            try:
-                load = fetch_studio_load(page, url)
-
-                print(f"Studio: {name}")
-                print(f"Zeit: {timestamp}")
-                print(f"Auslastung: {load}")
-
-                if load is not None:
-                    insert_studio_load(
-                        studio_slug=slug,
-                        timestamp=timestamp,
-                        load_percent=load,
-                    )
-                    print("Gespeichert in SQLite.")
-                else:
-                    print("Nicht gespeichert, weil keine Auslastung gefunden wurde.")
-
-                print("-" * 40)
-
-            except Exception as error:
-                print(f"Fehler bei {name}: {error}")
-                print("-" * 40)
-
-        browser.close()
+    asyncio.run(main_async())
 
 
 if __name__ == "__main__":
