@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "gymtracker.db"
 
 STUDIO_SLUG = "ai-fitness-friedrichshafen"
-OUTPUT_BASE = BASE_DIR / "output" / STUDIO_SLUG
+OUTPUT_BASE = BASE_DIR / "studios"
 
 WEEKDAY_NAMES = {
     0: "monday",
@@ -115,7 +115,7 @@ def main() -> None:
     year = latest.year
     month = latest.month
 
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+    output_dir = OUTPUT_BASE / STUDIO_SLUG / str(year) / f"{month:02d}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     create_month_graph(df, year, month, output_dir)
