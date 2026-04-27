@@ -82,7 +82,8 @@ def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
     if month_df.empty:
         return
 
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+    day_str = str(date.day).zfill(2)
+    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
 
     for date, day_df in month_df.groupby("date"):
         day_df = day_df.sort_values("timestamp")
@@ -105,7 +106,8 @@ def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
     if month_df.empty:
         return
 
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+    day_str = str(date.day).zfill(2)
+    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for date, day_df in month_df.groupby("date"):
