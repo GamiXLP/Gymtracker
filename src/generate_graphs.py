@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from studios import STUDIOS
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,8 +9,8 @@ import pandas as pd
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "data" / "gymtracker.db"
 
-STUDIO_SLUG = "ai-fitness-friedrichshafen"
-OUTPUT_BASE = BASE_DIR / "studios" / STUDIO_SLUG
+
+OUTPUT_BASE = BASE_DIR / "studios"
 
 WEEKDAY_NAMES = {
     0: "monday",
@@ -22,7 +23,7 @@ WEEKDAY_NAMES = {
 }
 
 
-def load_data() -> pd.DataFrame:
+def load_data(studio_slug: str) -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
             """
@@ -32,7 +33,7 @@ def load_data() -> pd.DataFrame:
             ORDER BY timestamp
             """,
             conn,
-            params=(STUDIO_SLUG,),
+            params=(studio_slug,),
         )
 
     if df.empty:
@@ -76,7 +77,7 @@ def save_line_graph(
     plt.close()
 
 
-def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
+def create_daily_graphs(df: pd.DataFrame, studio_slug: str, year: int, month: int) -> None:
     month_df = df[(df["year"] == year) & (df["month"] == month)]
 
     if month_df.empty:
@@ -86,7 +87,7 @@ def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
         day_df = day_df.sort_values("timestamp")
 
         day_str = str(date.day).zfill(2)
-        output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
+        output_dir = OUTPUT_BASE / studio_slug / str(year) / f"{month:02d}" / day_str
 
         output_file = output_dir / f"day_{date}.png"
 
@@ -100,7 +101,7 @@ def create_daily_graphs(df: pd.DataFrame, year: int, month: int) -> None:
             rotate_x=True,
         )
 
-def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
+def create_daily_csv_files(df: pd.DataFrame, studio_slug: str, year: int, month: int) -> None:
     month_df = df[(df["year"] == year) & (df["month"] == month)]
 
     if month_df.empty:
@@ -110,7 +111,7 @@ def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
         day_df = day_df.sort_values("timestamp")
 
         day_str = str(date.day).zfill(2)
-        output_dir = OUTPUT_BASE / str(year) / f"{month:02d}" / day_str
+        output_dir = OUTPUT_BASE / studio_slug / str(year) / f"{month:02d}" / day_str
         output_dir.mkdir(parents=True, exist_ok=True)
 
         export_df = day_df[["timestamp", "load_percent"]].copy()
@@ -119,13 +120,13 @@ def create_daily_csv_files(df: pd.DataFrame, year: int, month: int) -> None:
         output_file = output_dir / f"day_{date}.csv"
         export_df.to_csv(output_file, index=False)
 
-def create_monthly_weekday_average_graphs(df: pd.DataFrame, year: int, month: int) -> None:
+def create_monthly_weekday_average_graphs(df: pd.DataFrame, studio_slug: str, year: int, month: int) -> None:
     month_df = df[(df["year"] == year) & (df["month"] == month)]
 
     if month_df.empty:
         return
 
-    output_dir = OUTPUT_BASE / str(year) / f"{month:02d}"
+    output_dir = OUTPUT_BASE / studio_slug / str(year) / f"{month:02d}"
 
     for weekday_number, weekday_name in WEEKDAY_NAMES.items():
         weekday_df = month_df[month_df["weekday"] == weekday_number]
@@ -153,13 +154,13 @@ def create_monthly_weekday_average_graphs(df: pd.DataFrame, year: int, month: in
         )
 
 
-def create_yearly_weekday_average_graphs(df: pd.DataFrame, year: int) -> None:
+def create_yearly_weekday_average_graphs(df: pd.DataFrame, studio_slug: str, year: int) -> None:
     year_df = df[df["year"] == year]
 
     if year_df.empty:
         return
 
-    output_dir = OUTPUT_BASE / str(year)
+    output_dir = OUTPUT_BASE / studio_slug / str(year)
 
     for weekday_number, weekday_name in WEEKDAY_NAMES.items():
         weekday_df = year_df[year_df["weekday"] == weekday_number]
@@ -186,24 +187,26 @@ def create_yearly_weekday_average_graphs(df: pd.DataFrame, year: int) -> None:
             rotate_x=True,
         )
 
-
 def main() -> None:
-    df = load_data()
+    for studio in STUDIOS:
+        studio_slug = studio["slug"]
 
-    if df.empty:
-        print("Keine Daten vorhanden.")
-        return
+        df = load_data(studio_slug)
 
-    latest = df["timestamp"].max()
-    year = latest.year
-    month = latest.month
+        if df.empty:
+            print(f"Keine Daten vorhanden für {studio_slug}.")
+            continue
 
-    create_daily_graphs(df, year, month)
-    create_daily_csv_files(df, year, month)
-    create_monthly_weekday_average_graphs(df, year, month)
-    create_yearly_weekday_average_graphs(df, year)
+        latest = df["timestamp"].max()
+        year = latest.year
+        month = latest.month
 
-    print("Graphen wurden erstellt.")
+        create_daily_graphs(df, studio_slug, year, month)
+        create_daily_csv_files(df, studio_slug, year, month)
+        create_monthly_weekday_average_graphs(df, studio_slug, year, month)
+        create_yearly_weekday_average_graphs(df, studio_slug, year)
+
+        print(f"Graphen wurden erstellt für {studio_slug}.")
 
 
 if __name__ == "__main__":

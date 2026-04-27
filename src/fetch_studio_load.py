@@ -1,32 +1,21 @@
 import re
-from db import insert_studio_load
 from datetime import datetime
+
 from playwright.sync_api import sync_playwright
 
-URL = "https://www.ai-fitness.de/studios/friedrichshafen-bodenseecenter"
+from db import insert_studio_load
+from studios import STUDIOS
 
 
-def fetch_studio_load() -> int | None:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page(
-            user_agent="Mozilla/5.0"
-        )
+def fetch_studio_load(page, url: str) -> int | None:
+    page.goto(url, wait_until="networkidle", timeout=60000)
+    page.wait_for_timeout(3000)
 
-        page.goto(URL, wait_until="networkidle", timeout=60000)
+    text = page.locator("body").inner_text()
 
-        # Kurz warten, damit das Widget sicher fertig rendert
-        page.wait_for_timeout(3000)
-
-        text = page.locator("body").inner_text()
-
-        browser.close()
-
-    # Erst gezielt nach Auslastungsbereich suchen
     match = re.search(r"Aktuelle Auslastung.*?(\d{1,3})\s*%", text, re.DOTALL)
 
     if not match:
-        # Fallback: irgendeinen Prozentwert suchen
         match = re.search(r"(\d{1,3})\s*%", text)
 
     if not match:
@@ -40,19 +29,43 @@ def fetch_studio_load() -> int | None:
     return value
 
 
-if __name__ == "__main__":
+def main() -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    load = fetch_studio_load()
 
-    print("Zeit:", timestamp)
-    print("Auslastung:", load)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(user_agent="Mozilla/5.0")
 
-    if load is not None:
-        insert_studio_load(
-            studio_slug="ai-fitness-friedrichshafen",
-            timestamp=timestamp,
-            load_percent=load,
-        )
-        print("Gespeichert in SQLite.")
-    else:
-        print("Nicht gespeichert, weil keine Auslastung gefunden wurde.")
+        for studio in STUDIOS:
+            slug = studio["slug"]
+            name = studio["name"]
+            url = studio["url"]
+
+            try:
+                load = fetch_studio_load(page, url)
+
+                print(f"Studio: {name}")
+                print(f"Zeit: {timestamp}")
+                print(f"Auslastung: {load}")
+
+                if load is not None:
+                    insert_studio_load(
+                        studio_slug=slug,
+                        timestamp=timestamp,
+                        load_percent=load,
+                    )
+                    print("Gespeichert in SQLite.")
+                else:
+                    print("Nicht gespeichert, weil keine Auslastung gefunden wurde.")
+
+                print("-" * 40)
+
+            except Exception as error:
+                print(f"Fehler bei {name}: {error}")
+                print("-" * 40)
+
+        browser.close()
+
+
+if __name__ == "__main__":
+    main()
