@@ -41,7 +41,6 @@ def page(title: str, body: str, breadcrumbs: str = "") -> str:
 <style>
 :root {{
   --red: #e30613;
-  --red-dark: #9b0009;
   --bg: #070707;
   --panel: #111;
   --card: #181818;
@@ -50,162 +49,98 @@ def page(title: str, body: str, breadcrumbs: str = "") -> str:
   --border: rgba(255,255,255,.08);
 }}
 
-* {{
-  box-sizing: border-box;
-}}
-
 body {{
   margin: 0;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Inter, system-ui;
+  background: radial-gradient(circle at top, rgba(227,6,19,.2), transparent 40%), var(--bg);
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(227,6,19,.25), transparent 40%),
-    var(--bg);
 }}
 
-a {{
-  color: inherit;
-  text-decoration: none;
-}}
+a {{ text-decoration: none; color: inherit; }}
 
 .hero {{
-  min-height: 320px;
-  padding: 40px 24px;
-  background:
-    linear-gradient(120deg, rgba(0,0,0,.4), rgba(0,0,0,.9)),
-    linear-gradient(135deg, var(--red), var(--red-dark));
-}}
-
-.hero-inner {{
-  max-width: 1100px;
-  margin: auto;
-}}
-
-.logo {{
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.1);
-  font-weight: bold;
+  padding: 40px;
+  background: linear-gradient(135deg, #e30613, #8a0008);
 }}
 
 .hero h1 {{
-  margin: 25px 0 10px;
-  font-size: clamp(40px, 6vw, 70px);
-}}
-
-.hero p {{
-  color: #ccc;
+  font-size: 60px;
+  margin: 20px 0;
 }}
 
 .wrapper {{
   max-width: 1100px;
-  margin: -80px auto 60px;
+  margin: -60px auto 80px;
   padding: 0 20px;
 }}
 
 .shell {{
-  background: rgba(20,20,20,.9);
-  border-radius: 24px;
-  border: 1px solid var(--border);
+  background: #111;
+  border-radius: 20px;
   overflow: hidden;
+  border: 1px solid var(--border);
 }}
 
 .topbar {{
   padding: 20px;
-  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
-}}
-
-.breadcrumbs {{
-  font-size: 14px;
-  color: var(--muted);
-}}
-
-.badge {{
-  background: rgba(227,6,19,.2);
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+  border-bottom: 1px solid var(--border);
 }}
 
 .content {{
-  padding: 24px;
+  padding: 25px;
 }}
 
 .section-title {{
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin: 20px 0;
-}}
-
-.section-title::before {{
-  content: "";
-  width: 5px;
-  height: 24px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #ff0033, #ff3366);
-  box-shadow: 0 0 10px rgba(255,0,50,0.6);
+  font-size: 22px;
 }}
 
 .grid {{
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 15px;
 }}
 
 .nav-card {{
+  background: var(--card);
   padding: 18px;
-  border-radius: 16px;
-  background: #1b1b1b;
+  border-radius: 14px;
   border: 1px solid var(--border);
-  transition: 0.25s;
+  transition: 0.2s;
 }}
 
 .nav-card:hover {{
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0,0,0,.6);
-  border-color: rgba(255,255,255,.15);
+  border-color: var(--red);
 }}
 
 .chart-card {{
-  padding: 20px;
-  border-radius: 20px;
-  background: #111;
-  border: 1px solid var(--border);
-  margin-bottom: 25px;
-}}
-
-.chart-card h3 {{
-  margin-bottom: 15px;
+  padding: 18px;
+  margin-bottom: 26px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #1a1a1a, #111);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
 }}
 
 .chart-card img {{
-  width: 100%;
-  border-radius: 10px;
-  filter: invert(1) hue-rotate(180deg) contrast(0.9);
+  background: #0a0a0a;
+  border-radius: 14px;
 }}
 
 .btn {{
+  display: inline-block;
   padding: 10px 14px;
   border-radius: 999px;
-  background: var(--red);
-  color: white;
-  font-weight: bold;
-}}
-
-.btn.secondary {{
   background: #222;
-  border: 1px solid var(--border);
 }}
 
 .footer {{
   padding: 20px;
-  font-size: 12px;
-  color: #777;
+  text-align: center;
+  color: var(--muted);
   border-top: 1px solid var(--border);
 }}
 </style>
@@ -213,19 +148,15 @@ a {{
 
 <body>
 
-<header class="hero">
-  <div class="hero-inner">
-    <div class="logo">🏋️ Gymtracker</div>
-    <h1>{title}</h1>
-    <p>Studio-Auslastung automatisch gemessen und visualisiert.</p>
-  </div>
-</header>
+<div class="hero">
+  <h1>{title}</h1>
+</div>
 
-<main class="wrapper">
-  <section class="shell">
+<div class="wrapper">
+  <div class="shell">
     <div class="topbar">
-      <div class="breadcrumbs">{breadcrumbs}</div>
-      <div class="badge">● LIVE</div>
+      <div>{breadcrumbs}</div>
+      <div>● LIVE</div>
     </div>
 
     <div class="content">
@@ -233,10 +164,10 @@ a {{
     </div>
 
     <div class="footer">
-      Automatisch generiert · AI Fitness Style
+      Gymtracker · AI Fitness Style
     </div>
-  </section>
-</main>
+  </div>
+</div>
 
 </body>
 </html>
@@ -251,7 +182,8 @@ def write(path: Path, title: str, body: str, breadcrumbs: str = ""):
 def copy_assets():
     if DOCS_DIR.exists():
         shutil.rmtree(DOCS_DIR)
-    DOCS_DIR.mkdir(parents=True)
+
+    DOCS_DIR.mkdir()
     shutil.copytree(SOURCE_DIR, PUBLIC_STUDIOS_DIR)
 
 
@@ -264,43 +196,104 @@ def build():
 
     studios = [p for p in PUBLIC_STUDIOS_DIR.iterdir() if p.is_dir()]
 
-    # START
-    cards = "".join(f"""
-<a class="nav-card" href="studios/{s.name}/index.html">
-  <strong>{nice_name(s.name)}</strong>
-  <span>Studio öffnen →</span>
-</a>""" for s in studios)
+    # HOME
+    write(
+        DOCS_DIR / "index.html",
+        "Gymtracker",
+        f"""
+<h2 class="section-title">Studios</h2>
+<div class="grid">
+{''.join(f'<a class="nav-card" href="studios/{s.name}/index.html"><strong>{nice_name(s.name)}</strong></a>' for s in studios)}
+</div>
+""",
+        "Start"
+    )
 
-    write(DOCS_DIR / "index.html", "Gymtracker",
-          f"<h2 class='section-title'>Studios</h2><div class='grid'>{cards}</div>",
-          "Start")
-
+    # STUDIOS
     for s in studios:
         years = [p for p in s.iterdir() if p.is_dir()]
 
-        cards = "".join(f"""
-<a class="nav-card" href="{y.name}/index.html">
-  <strong>{y.name}</strong>
-  <span>Jahr anzeigen →</span>
-</a>""" for y in years)
+        write(
+            s / "index.html",
+            nice_name(s.name),
+            f"""
+<a class="btn" href="../../index.html">← Zurück</a>
 
-        write(s / "index.html", nice_name(s.name),
-              f"<a class='btn secondary' href='../../index.html'>← Zurück</a><h2 class='section-title'>Jahre</h2><div class='grid'>{cards}</div>",
-              f'<a href="../../index.html">Start</a> / {nice_name(s.name)}')
+<h2 class="section-title">Jahre</h2>
+<div class="grid">
+{''.join(f'<a class="nav-card" href="{y.name}/index.html"><strong>{y.name}</strong></a>' for y in years)}
+</div>
+""",
+            f'<a href="../../index.html">Start</a> / {nice_name(s.name)}'
+        )
 
+        # YEARS
         for y in years:
             months = [p for p in y.iterdir() if p.is_dir()]
-            charts = "".join(f"""
-<div class="chart-card">
-<h3>{nice_chart_name(p.name)}</h3>
-<img src="{p.name}">
-</div>""" for p in y.glob("*.png"))
+            yearly_pngs = list(y.glob("*.png"))
 
-            write(y / "index.html", f"{nice_name(s.name)} {y.name}",
-                  f"<a class='btn secondary' href='../index.html'>← Zurück</a><h2 class='section-title'>Monate</h2><div class='grid'>{''.join(f'<a class=\"nav-card\" href=\"{m.name}/index.html\"><strong>{m.name}</strong></a>' for m in months)}</div><h2 class='section-title'>Jahr</h2>{charts}",
-                  f'<a href="../../../index.html">Start</a> / <a href="../index.html">{nice_name(s.name)}</a> / {y.name}')
+            write(
+                y / "index.html",
+                f"{nice_name(s.name)} {y.name}",
+                f"""
+<a class="btn" href="../index.html">← Zurück</a>
 
-    print("🔥 Fertig!")
+<h2 class="section-title">Monate</h2>
+<div class="grid">
+{''.join(f'<a class="nav-card" href="{m.name}/index.html"><strong>{m.name}</strong></a>' for m in months)}
+</div>
+
+<h2 class="section-title">Jahresdiagramme</h2>
+{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in yearly_pngs)}
+""",
+                f'<a href="../../../index.html">Start</a> / <a href="../index.html">{nice_name(s.name)}</a> / {y.name}'
+            )
+
+            # MONTHS
+            for m in months:
+                days = [p for p in m.iterdir() if p.is_dir()]
+                monthly_pngs = list(m.glob("*.png"))
+
+                write(
+                    m / "index.html",
+                    f"{nice_name(s.name)} {y.name}/{m.name}",
+                    f"""
+<a class="btn" href="../index.html">← Zurück</a>
+
+<h2 class="section-title">Tage</h2>
+<div class="grid">
+{''.join(f'<a class="nav-card" href="{d.name}/index.html"><strong>{d.name}</strong></a>' for d in days)}
+</div>
+
+<h2 class="section-title">Monatsdiagramme</h2>
+{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in monthly_pngs)}
+""",
+                    f'<a href="../../../../index.html">Start</a> / <a href="../../index.html">{nice_name(s.name)}</a> / <a href="../index.html">{y.name}</a> / {m.name}'
+                )
+
+                # DAYS
+                for d in days:
+                    day_pngs = list(d.glob("*.png"))
+                    csvs = list(d.glob("*.csv"))
+
+                    write(
+                        d / "index.html",
+                        f"{nice_name(s.name)} {y.name}/{m.name}/{d.name}",
+                        f"""
+<a class="btn" href="../index.html">← Zurück</a>
+
+<h2 class="section-title">Tagesdiagramme</h2>
+{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in day_pngs)}
+
+<h2 class="section-title">Tabellen</h2>
+<div class="grid">
+{''.join(f'<a class="nav-card" href="{c.name}"><strong>{c.name}</strong></a>' for c in csvs)}
+</div>
+""",
+                        f'<a href="../../../../../index.html">Start</a> / <a href="../../../index.html">{nice_name(s.name)}</a> / <a href="../../index.html">{y.name}</a> / <a href="../index.html">{m.name}</a> / {d.name}'
+                    )
+
+    print("✅ Fertig! Site unter docs/ generiert.")
 
 
 if __name__ == "__main__":
