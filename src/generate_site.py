@@ -1,210 +1,247 @@
-import shutil
+import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-SOURCE_STUDIOS_DIR = BASE_DIR / "studios"
-DOCS_DIR = BASE_DIR / "docs"
-PUBLIC_STUDIOS_DIR = DOCS_DIR / "studios"
+BASE_DIR = Path("docs")
+DATA_DIR = Path("data/plots")
 
 
-def write_page(path: Path, title: str, items: list[str]) -> None:
+def write_page(path, title, content):
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    html = f"""<!DOCTYPE html>
+    html = f"""
+<!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background: #f4f4f4;
-            color: #111;
-        }}
-        .container {{
-            background: white;
-            padding: 28px;
-            border-radius: 14px;
-            max-width: 1200px;
-            margin: auto;
-        }}
-        a {{
-            color: #0057b8;
-            text-decoration: none;
-            font-weight: bold;
-        }}
-        a:hover {{
-            text-decoration: underline;
-        }}
-        ul {{
-            line-height: 2;
-        }}
-        img {{
-            width: 100%;
-            max-width: 1100px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin: 12px 0 32px 0;
-            background: white;
-        }}
-        .back {{
-            margin-bottom: 24px;
-            display: inline-block;
-        }}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title}</title>
+
+<style>
+body {{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background: #0f0f0f;
+    color: #f1f1f1;
+}}
+
+.container {{
+    max-width: 1200px;
+    margin: auto;
+    padding: 30px;
+}}
+
+h1 {{
+    font-size: 32px;
+    margin-bottom: 20px;
+}}
+
+h2 {{
+    margin-top: 30px;
+    color: #e30613;
+}}
+
+a {{
+    color: #e30613;
+    text-decoration: none;
+    font-weight: 500;
+}}
+
+a:hover {{
+    text-decoration: underline;
+}}
+
+.back {{
+    display: inline-block;
+    margin-bottom: 20px;
+    background: #e30613;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+}}
+
+.back:hover {{
+    background: #ff1f2f;
+}}
+
+.grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}}
+
+.card {{
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    transition: 0.2s;
+}}
+
+.card:hover {{
+    transform: translateY(-4px);
+    box-shadow: 0 0 30px rgba(227,6,19,0.2);
+}}
+
+img {{
+    width: 100%;
+    max-width: 1000px;
+    border-radius: 12px;
+    margin-top: 10px;
+    border: 1px solid #333;
+}}
+
+.header {{
+    background: linear-gradient(90deg, #e30613, #7a0000);
+    padding: 25px;
+    border-radius: 16px;
+    margin-bottom: 30px;
+}}
+</style>
 </head>
+
 <body>
 <div class="container">
-<h1>{title}</h1>
-{''.join(items)}
+
+<div class="header">
+    <h1>🏋️ Gymtracker</h1>
+    <p>Live Studio-Auslastung</p>
+</div>
+
+{content}
+
 </div>
 </body>
 </html>
 """
-    path.write_text(html, encoding="utf-8")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(html)
 
 
-def relative_link(from_file: Path, to_file: Path) -> str:
-    return to_file.relative_to(from_file.parent).as_posix()
+def generate():
+    if not DATA_DIR.exists():
+        print("Kein data/plots Ordner gefunden")
+        return
 
+    # -------- ROOT PAGE --------
+    studios = sorted([d for d in DATA_DIR.iterdir() if d.is_dir()])
 
-def build_pages() -> None:
-    if DOCS_DIR.exists():
-        shutil.rmtree(DOCS_DIR)
+    items = []
+    for studio in studios:
+        link = f"{studio.name}/index.html"
+        items.append(f"""
+        <div class="card">
+            <a href="{link}">{studio.name}</a>
+        </div>
+        """)
 
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    write_page(
+        BASE_DIR / "index.html",
+        "Gymtracker",
+        "<h2>Studios</h2><div class='grid'>" + "".join(items) + "</div>"
+    )
 
-    if PUBLIC_STUDIOS_DIR.exists():
-        shutil.rmtree(PUBLIC_STUDIOS_DIR)
+    # -------- STUDIO PAGES --------
+    for studio in studios:
+        years = sorted([d for d in studio.iterdir() if d.is_dir()])
 
-    shutil.copytree(SOURCE_STUDIOS_DIR, PUBLIC_STUDIOS_DIR)
+        items = []
+        for year in years:
+            link = f"{year.name}/index.html"
+            items.append(f"""
+            <div class="card">
+                <a href="{link}">{year.name}</a>
+            </div>
+            """)
 
-    # Startseite: Studios
-    studio_dirs = sorted([p for p in PUBLIC_STUDIOS_DIR.iterdir() if p.is_dir()])
-
-    index_items = [
-        "<p>Automatisch generierte Studio-Auslastungsdiagramme.</p>",
-        "<ul>",
-    ]
-
-    for studio_dir in studio_dirs:
-        studio_index = studio_dir / "index.html"
-        index_items.append(
-            f"<li><a href='{relative_link(DOCS_DIR / 'index.html', studio_index)}'>{studio_dir.name}</a></li>"
+        write_page(
+            BASE_DIR / studio.name / "index.html",
+            studio.name,
+            f"<a class='back' href='../index.html'>← Zurück</a>"
+            f"<h2>{studio.name}</h2>"
+            f"<div class='grid'>{''.join(items)}</div>"
         )
 
-    index_items.append("</ul>")
-    write_page(DOCS_DIR / "index.html", "Gymtracker", index_items)
+        # -------- YEAR --------
+        for year in years:
+            months = sorted([d for d in year.iterdir() if d.is_dir()])
 
-    # Studio -> Jahre
-    for studio_dir in studio_dirs:
-        year_dirs = sorted([p for p in studio_dir.iterdir() if p.is_dir()])
+            items = []
+            for month in months:
+                link = f"{month.name}/index.html"
+                items.append(f"""
+                <div class="card">
+                    <a href="{link}">{month.name}</a>
+                </div>
+                """)
 
-        items = [
-            "<a class='back' href='../../index.html'>← Zurück zu allen Studios</a>",
-            "<ul>",
-        ]
-
-        for year_dir in year_dirs:
-            year_index = year_dir / "index.html"
-            items.append(
-                f"<li><a href='{relative_link(studio_dir / 'index.html', year_index)}'>{year_dir.name}</a></li>"
+            write_page(
+                BASE_DIR / studio.name / year.name / "index.html",
+                year.name,
+                f"<a class='back' href='../index.html'>← Zurück</a>"
+                f"<h2>{studio.name} / {year.name}</h2>"
+                f"<div class='grid'>{''.join(items)}</div>"
             )
 
-        items.append("</ul>")
-        write_page(studio_dir / "index.html", studio_dir.name, items)
+            # -------- MONTH --------
+            for month in months:
+                files = list(month.glob("*.png"))
 
-        # Jahr -> Monatsordner + Jahresdiagramme
-        for year_dir in year_dirs:
-            month_dirs = sorted([p for p in year_dir.iterdir() if p.is_dir()])
-            png_files = sorted(year_dir.glob("*.png"))
+                days = []
+                weekday = []
 
-            items = [
-                "<a class='back' href='../index.html'>← Zurück zum Studio</a>",
-                "<h2>Monate</h2>",
-                "<ul>",
-            ]
+                for f in files:
+                    if f.name.startswith("day_"):
+                        days.append(f)
+                    else:
+                        weekday.append(f)
 
-            for month_dir in month_dirs:
-                month_index = month_dir / "index.html"
-                items.append(
-                    f"<li><a href='{relative_link(year_dir / 'index.html', month_index)}'>{month_dir.name}</a></li>"
-                )
+                day_links = []
+                for d in sorted(days):
+                    day_name = d.name.replace("day_", "").replace(".png", "")
+                    link = f"{day_name}.html"
 
-            items.append("</ul>")
+                    day_links.append(f"""
+                    <div class="card">
+                        <a href="{link}">{day_name}</a>
+                    </div>
+                    """)
 
-            if png_files:
-                items.append("<h2>Jahresdiagramme</h2>")
-                for png in png_files:
-                    items.append(f"<h3>{png.name}</h3>")
-                    items.append(f"<img src='{png.name}' alt='{png.name}'>")
-
-            write_page(year_dir / "index.html", f"{studio_dir.name} / {year_dir.name}", items)
-
-            # Monat -> Tage + Monatsdiagramme
-            for month_dir in month_dirs:
-                day_dirs = sorted([p for p in month_dir.iterdir() if p.is_dir()])
-                png_files = sorted(month_dir.glob("*.png"))
-
-                items = [
-                    "<a class='back' href='../index.html'>← Zurück zum Jahr</a>",
-                    "<h2>Tage</h2>",
-                    "<ul>",
-                ]
-
-                for day_dir in day_dirs:
-                    day_index = day_dir / "index.html"
-                    items.append(
-                        f"<li><a href='{relative_link(month_dir / 'index.html', day_index)}'>{day_dir.name}</a></li>"
-                    )
-
-                items.append("</ul>")
-
-                if png_files:
-                    items.append("<h2>Monatsdiagramme</h2>")
-                    for png in png_files:
-                        items.append(f"<h3>{png.name}</h3>")
-                        items.append(f"<img src='{png.name}' alt='{png.name}'>")
+                # Monatsdiagramme anzeigen
+                weekday_html = []
+                for w in sorted(weekday):
+                    weekday_html.append(f"""
+                    <div class="card">
+                        <h3>{w.name}</h3>
+                        <img src="{w.name}">
+                    </div>
+                    """)
 
                 write_page(
-                    month_dir / "index.html",
-                    f"{studio_dir.name} / {year_dir.name} / {month_dir.name}",
-                    items,
+                    BASE_DIR / studio.name / year.name / month.name / "index.html",
+                    month.name,
+                    f"<a class='back' href='../index.html'>← Zurück</a>"
+                    f"<h2>{studio.name} / {year.name} / {month.name}</h2>"
+                    f"<h2>Tage</h2>"
+                    f"<div class='grid'>{''.join(day_links)}</div>"
+                    f"<h2>Monatsdiagramme</h2>"
+                    f"{''.join(weekday_html)}"
                 )
 
-                # Tag -> Tagesdiagramm + CSV
-                for day_dir in day_dirs:
-                    png_files = sorted(day_dir.glob("*.png"))
-                    csv_files = sorted(day_dir.glob("*.csv"))
-
-                    items = [
-                        "<a class='back' href='../index.html'>← Zurück zum Monat</a>",
-                    ]
-
-                    for png in png_files:
-                        items.append(f"<h2>{png.name}</h2>")
-                        items.append(f"<img src='{png.name}' alt='{png.name}'>")
-
-                    if csv_files:
-                        items.append("<h2>Tabellen</h2>")
-                        items.append("<ul>")
-                        for csv in csv_files:
-                            items.append(f"<li><a href='{csv.name}'>{csv.name}</a></li>")
-                        items.append("</ul>")
+                # -------- DAY --------
+                for d in days:
+                    day_name = d.name.replace("day_", "").replace(".png", "")
 
                     write_page(
-                        day_dir / "index.html",
-                        f"{studio_dir.name} / {year_dir.name} / {month_dir.name} / {day_dir.name}",
-                        items,
+                        BASE_DIR / studio.name / year.name / month.name / f"{day_name}.html",
+                        day_name,
+                        f"<a class='back' href='index.html'>← Zurück</a>"
+                        f"<h2>{studio.name} / {year.name} / {month.name} / {day_name}</h2>"
+                        f"<div class='card'>"
+                        f"<img src='{d.name}'>"
+                        f"</div>"
                     )
-
-
-def main() -> None:
-    build_pages()
-    print("Webseite erstellt unter docs/")
 
 
 if __name__ == "__main__":
-    main()
+    generate()
