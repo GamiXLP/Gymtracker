@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from html import escape
 
 SOURCE_DIR = Path("studios")
 DOCS_DIR = Path("docs")
@@ -11,7 +12,7 @@ def nice_name(value: str) -> str:
 
 
 def nice_chart_name(value: str) -> str:
-    value = value.replace(".png", "").replace("_", " ")
+    value = value.replace(".png", "").replace("_", " ").lower()
 
     replacements = {
         "weekday monday": "Montag",
@@ -30,161 +31,360 @@ def nice_chart_name(value: str) -> str:
     return value.title()
 
 
-def page(title: str, body: str, breadcrumbs: str = "") -> str:
+def sort_dirs(items):
+    return sorted([p for p in items if p.is_dir()], key=lambda p: p.name)
+
+
+def sort_pngs(path: Path):
+    return sorted(path.glob("*.png"), key=lambda p: p.name)
+
+
+def page(title: str, body: str, back_href: str | None = None, subtitle: str = "Studio-Auslastung automatisch gemessen und visualisiert.") -> str:
+    back_button = ""
+    if back_href:
+        back_button = f'<a class="back-btn" href="{back_href}">← Zurück</a>'
+
     return f"""<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title}</title>
+<title>{escape(title)}</title>
 
 <style>
 :root {{
   --red: #e30613;
+  --red-dark: #93000a;
   --bg: #070707;
-  --panel: #111;
-  --card: #181818;
-  --text: #f5f5f5;
-  --muted: #a7a7a7;
-  --border: rgba(255,255,255,.08);
+  --panel: #121212;
+  --panel-2: #181818;
+  --text: #f4f4f4;
+  --muted: #a6a6a6;
+  --border: rgba(255,255,255,.10);
+}}
+
+* {{
+  box-sizing: border-box;
+}}
+
+html {{
+  scroll-behavior: smooth;
 }}
 
 body {{
   margin: 0;
-  font-family: Inter, system-ui;
-  background: radial-gradient(circle at top, rgba(227,6,19,.2), transparent 40%), var(--bg);
+  min-height: 100vh;
+  font-family: Inter, Arial, system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(227, 6, 19, .34), transparent 34%),
+    radial-gradient(circle at 90% 10%, rgba(227, 6, 19, .16), transparent 30%),
+    linear-gradient(180deg, #090909 0%, #050505 100%);
   color: var(--text);
 }}
 
-a {{ text-decoration: none; color: inherit; }}
+a {{
+  color: inherit;
+  text-decoration: none;
+}}
 
 .hero {{
-  padding: 40px;
-  background: linear-gradient(135deg, #e30613, #8a0008);
+  padding: 34px 18px 92px;
+  background:
+    linear-gradient(135deg, rgba(227,6,19,.96), rgba(110,0,8,.96)),
+    linear-gradient(135deg, var(--red), var(--red-dark));
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}}
+
+.hero-inner {{
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}}
+
+.top-nav {{
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 34px;
+}}
+
+.back-btn {{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.24);
+  border: 1px solid rgba(255,255,255,.22);
+  font-weight: 800;
+  font-size: 14px;
+  transition: .2s ease;
+}}
+
+.back-btn:hover {{
+  background: rgba(0,0,0,.38);
+  transform: translateY(-1px);
+}}
+
+.live-badge {{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.24);
+  border: 1px solid rgba(255,255,255,.22);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .04em;
+}}
+
+.live-dot {{
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #31ff72;
+  box-shadow: 0 0 16px rgba(49,255,114,.9);
 }}
 
 .hero h1 {{
-  font-size: 60px;
-  margin: 20px 0;
+  margin: 0;
+  max-width: 980px;
+  font-size: clamp(38px, 7vw, 92px);
+  line-height: .9;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+}}
+
+.hero p {{
+  margin: 18px 0 0;
+  max-width: 680px;
+  color: rgba(255,255,255,.82);
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 600;
 }}
 
 .wrapper {{
-  max-width: 1100px;
-  margin: -60px auto 80px;
-  padding: 0 20px;
+  width: min(1180px, 100%);
+  margin: -58px auto 70px;
+  padding: 0 18px;
 }}
 
 .shell {{
-  background: #111;
-  border-radius: 20px;
-  overflow: hidden;
+  background: rgba(18,18,18,.90);
   border: 1px solid var(--border);
-}}
-
-.topbar {{
-  padding: 20px;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  border-radius: 30px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.58);
+  backdrop-filter: blur(18px);
+  overflow: hidden;
 }}
 
 .content {{
-  padding: 25px;
-}}
-
-.section-title {{
-  margin: 20px 0;
-  font-size: 22px;
+  padding: clamp(18px, 3vw, 34px);
 }}
 
 .grid {{
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
 }}
 
 .nav-card {{
-  background: var(--card);
-  padding: 18px;
-  border-radius: 14px;
+  position: relative;
+  min-height: 118px;
+  padding: 22px;
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
   border: 1px solid var(--border);
-  transition: 0.2s;
+  overflow: hidden;
+  transition: .22s ease;
+}}
+
+.nav-card::before {{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 0%, rgba(227,6,19,.32), transparent 38%);
+  opacity: .7;
+}}
+
+.nav-card strong {{
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: 23px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}}
+
+.nav-card span {{
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--muted);
+  font-weight: 700;
 }}
 
 .nav-card:hover {{
   transform: translateY(-4px);
-  border-color: var(--red);
+  border-color: rgba(227,6,19,.75);
+  box-shadow: 0 18px 45px rgba(0,0,0,.35);
+}}
+
+.section-title {{
+  margin: 6px 0 18px;
+  font-size: 18px;
+  color: var(--muted);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .10em;
 }}
 
 .chart-card {{
-  padding: 18px;
-  margin-bottom: 26px;
-  border-radius: 24px;
-  background: linear-gradient(145deg, #1a1a1a, #111);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  margin-top: 22px;
+  padding: clamp(14px, 2vw, 22px);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+  border: 1px solid var(--border);
+}}
+
+.chart-card:first-child {{
+  margin-top: 0;
+}}
+
+.chart-card h3 {{
+  margin: 0 0 16px;
+  font-size: clamp(20px, 3vw, 34px);
+  letter-spacing: -0.04em;
+}}
+
+.chart-frame {{
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 18px;
+  background: #fff;
 }}
 
 .chart-card img {{
-  background: #0a0a0a;
-  border-radius: 14px;
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 720px;
+  border-radius: 18px;
 }}
 
-.btn {{
-  display: inline-block;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: #222;
+.empty {{
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  background: rgba(255,255,255,.03);
+  font-weight: 700;
 }}
 
 .footer {{
-  padding: 20px;
-  text-align: center;
-  color: var(--muted);
+  padding: 18px 24px;
   border-top: 1px solid var(--border);
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}}
+
+@media (max-width: 760px) {{
+  .hero {{
+    padding-bottom: 78px;
+  }}
+
+  .top-nav {{
+    margin-bottom: 26px;
+  }}
+
+  .shell {{
+    border-radius: 24px;
+  }}
+
+  .nav-card {{
+    min-height: 98px;
+  }}
+
+  .chart-card img {{
+    min-width: 620px;
+  }}
 }}
 </style>
 </head>
 
 <body>
 
-<div class="hero">
-  <h1>{title}</h1>
-</div>
-
-<div class="wrapper">
-  <div class="shell">
-    <div class="topbar">
-      <div>{breadcrumbs}</div>
-      <div>● LIVE</div>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="top-nav">
+      <div>{back_button}</div>
+      <div class="live-badge"><span class="live-dot"></span> LIVE</div>
     </div>
 
+    <h1>{escape(title)}</h1>
+    <p>{escape(subtitle)}</p>
+  </div>
+</header>
+
+<main class="wrapper">
+  <div class="shell">
     <div class="content">
       {body}
     </div>
 
     <div class="footer">
-      Gymtracker · AI Fitness Style
+      Gymtracker · AI Fitness Dashboard
     </div>
   </div>
-</div>
+</main>
 
 </body>
 </html>
 """
 
 
-def write(path: Path, title: str, body: str, breadcrumbs: str = ""):
+def write(path: Path, title: str, body: str, back_href: str | None = None):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(page(title, body, breadcrumbs), encoding="utf-8")
+    path.write_text(page(title, body, back_href), encoding="utf-8")
 
 
 def copy_assets():
     if DOCS_DIR.exists():
         shutil.rmtree(DOCS_DIR)
 
-    DOCS_DIR.mkdir()
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copytree(SOURCE_DIR, PUBLIC_STUDIOS_DIR)
+
+
+def nav_card(href: str, title: str, label: str = "Öffnen") -> str:
+    return f"""
+<a class="nav-card" href="{escape(href)}">
+  <strong>{escape(title)}</strong>
+  <span>{escape(label)} →</span>
+</a>
+"""
+
+
+def chart_card(png: Path) -> str:
+    return f"""
+<div class="chart-card">
+  <h3>{escape(nice_chart_name(png.name))}</h3>
+  <div class="chart-frame">
+    <img src="{escape(png.name)}" alt="{escape(nice_chart_name(png.name))}">
+  </div>
+</div>
+"""
+
+
+def empty(text: str) -> str:
+    return f'<div class="empty">{escape(text)}</div>'
 
 
 def build():
@@ -194,106 +394,107 @@ def build():
 
     copy_assets()
 
-    studios = [p for p in PUBLIC_STUDIOS_DIR.iterdir() if p.is_dir()]
+    studios = sort_dirs(PUBLIC_STUDIOS_DIR.iterdir())
 
-    # HOME
+    cards = ""
+    for s in studios:
+        cards += nav_card(f"studios/{s.name}/index.html", nice_name(s.name), "Studio anzeigen")
+
+    if not cards:
+        cards = empty("Noch keine Studios gefunden.")
+
     write(
         DOCS_DIR / "index.html",
         "Gymtracker",
-        f"""
-<h2 class="section-title">Studios</h2>
-<div class="grid">
-{''.join(f'<a class="nav-card" href="studios/{s.name}/index.html"><strong>{nice_name(s.name)}</strong></a>' for s in studios)}
-</div>
-""",
-        "Start"
+        f"<div class='section-title'>Studios</div><div class='grid'>{cards}</div>",
+        None,
     )
 
-    # STUDIOS
     for s in studios:
-        years = [p for p in s.iterdir() if p.is_dir()]
+        years = sort_dirs(s.iterdir())
+
+        year_cards = ""
+        for y in years:
+            year_cards += nav_card(f"{y.name}/index.html", y.name, "Jahr anzeigen")
+
+        if not year_cards:
+            year_cards = empty("Für dieses Studio wurden noch keine Jahre gefunden.")
 
         write(
             s / "index.html",
             nice_name(s.name),
-            f"""
-<a class="btn" href="../../index.html">← Zurück</a>
-
-<h2 class="section-title">Jahre</h2>
-<div class="grid">
-{''.join(f'<a class="nav-card" href="{y.name}/index.html"><strong>{y.name}</strong></a>' for y in years)}
-</div>
-""",
-            f'<a href="../../index.html">Start</a> / {nice_name(s.name)}'
+            f"<div class='section-title'>Jahre</div><div class='grid'>{year_cards}</div>",
+            "../../index.html",
         )
 
-        # YEARS
         for y in years:
-            months = [p for p in y.iterdir() if p.is_dir()]
-            yearly_pngs = list(y.glob("*.png"))
+            months = sort_dirs(y.iterdir())
+
+            month_cards = ""
+            for m in months:
+                month_cards += nav_card(f"{m.name}/index.html", m.name, "Monat anzeigen")
+
+            charts = ""
+            for png in sort_pngs(y):
+                charts += chart_card(png)
+
+            body = ""
+            if month_cards:
+                body += f"<div class='section-title'>Monate</div><div class='grid'>{month_cards}</div>"
+            if charts:
+                body += f"<div class='section-title' style='margin-top:32px;'>Jahresauswertung</div>{charts}"
+            if not body:
+                body = empty("Für dieses Jahr wurden noch keine Daten gefunden.")
 
             write(
                 y / "index.html",
                 f"{nice_name(s.name)} {y.name}",
-                f"""
-<a class="btn" href="../index.html">← Zurück</a>
-
-<h2 class="section-title">Monate</h2>
-<div class="grid">
-{''.join(f'<a class="nav-card" href="{m.name}/index.html"><strong>{m.name}</strong></a>' for m in months)}
-</div>
-
-<h2 class="section-title">Jahresdiagramme</h2>
-{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in yearly_pngs)}
-""",
-                f'<a href="../../../index.html">Start</a> / <a href="../index.html">{nice_name(s.name)}</a> / {y.name}'
+                body,
+                "../index.html",
             )
 
-            # MONTHS
             for m in months:
-                days = [p for p in m.iterdir() if p.is_dir()]
-                monthly_pngs = list(m.glob("*.png"))
+                days = sort_dirs(m.iterdir())
+
+                day_cards = ""
+                for d in days:
+                    day_cards += nav_card(f"{d.name}/index.html", d.name, "Tag anzeigen")
+
+                charts = ""
+                for png in sort_pngs(m):
+                    charts += chart_card(png)
+
+                body = ""
+                if day_cards:
+                    body += f"<div class='section-title'>Tage</div><div class='grid'>{day_cards}</div>"
+                if charts:
+                    body += f"<div class='section-title' style='margin-top:32px;'>Monatsauswertung</div>{charts}"
+                if not body:
+                    body = empty("Für diesen Monat wurden noch keine Daten gefunden.")
 
                 write(
                     m / "index.html",
                     f"{nice_name(s.name)} {y.name}/{m.name}",
-                    f"""
-<a class="btn" href="../index.html">← Zurück</a>
-
-<h2 class="section-title">Tage</h2>
-<div class="grid">
-{''.join(f'<a class="nav-card" href="{d.name}/index.html"><strong>{d.name}</strong></a>' for d in days)}
-</div>
-
-<h2 class="section-title">Monatsdiagramme</h2>
-{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in monthly_pngs)}
-""",
-                    f'<a href="../../../../index.html">Start</a> / <a href="../../index.html">{nice_name(s.name)}</a> / <a href="../index.html">{y.name}</a> / {m.name}'
+                    body,
+                    "../index.html",
                 )
 
-                # DAYS
                 for d in days:
-                    day_pngs = list(d.glob("*.png"))
-                    csvs = list(d.glob("*.csv"))
+                    charts = ""
+                    for png in sort_pngs(d):
+                        charts += chart_card(png)
+
+                    if not charts:
+                        charts = empty("Für diesen Tag wurden noch keine Diagramme gefunden.")
 
                     write(
                         d / "index.html",
                         f"{nice_name(s.name)} {y.name}/{m.name}/{d.name}",
-                        f"""
-<a class="btn" href="../index.html">← Zurück</a>
-
-<h2 class="section-title">Tagesdiagramme</h2>
-{''.join(f'<div class="chart-card"><h3>{nice_chart_name(p.name)}</h3><img src="{p.name}"></div>' for p in day_pngs)}
-
-<h2 class="section-title">Tabellen</h2>
-<div class="grid">
-{''.join(f'<a class="nav-card" href="{c.name}"><strong>{c.name}</strong></a>' for c in csvs)}
-</div>
-""",
-                        f'<a href="../../../../../index.html">Start</a> / <a href="../../../index.html">{nice_name(s.name)}</a> / <a href="../../index.html">{y.name}</a> / <a href="../index.html">{m.name}</a> / {d.name}'
+                        charts,
+                        "../index.html",
                     )
 
-    print("✅ Fertig! Site unter docs/ generiert.")
+    print("✅ Dashboard erstellt!")
 
 
 if __name__ == "__main__":
