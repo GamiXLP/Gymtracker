@@ -3,6 +3,7 @@ import re
 from datetime import datetime, time
 
 from playwright.async_api import async_playwright
+from zoneinfo import ZoneInfo
 
 from db import insert_studio_load
 from studios import STUDIOS
@@ -80,7 +81,7 @@ async def fetch_one_studio(browser, studio: dict, timestamp: str, semaphore: asy
 
 
 async def main_async() -> None:
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("Europe/Berlin"))
 
     if not is_currently_open(now):
         print("Studio ist aktuell geschlossen. Es werden keine Daten gesammelt.")
