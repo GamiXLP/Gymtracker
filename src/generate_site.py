@@ -9,6 +9,25 @@ PUBLIC_STUDIOS_DIR = DOCS_DIR / "studios"
 def nice_name(value: str) -> str:
     return value.replace("ai-fitness-", "").replace("-", " ").title()
 
+def nice_chart_name(value: str) -> str:
+    value = value.replace(".png", "").replace("_", " ")
+
+    replacements = {
+        "weekday monday": "Montag",
+        "weekday tuesday": "Dienstag",
+        "weekday wednesday": "Mittwoch",
+        "weekday thursday": "Donnerstag",
+        "weekday friday": "Freitag",
+        "weekday saturday": "Samstag",
+        "weekday sunday": "Sonntag",
+        "day": "Tagesverlauf",
+    }
+
+    for old, new in replacements.items():
+        value = value.replace(old, new)
+
+    return value.title()
+
 
 def page(title: str, body: str, breadcrumbs: str = "") -> str:
     return f"""<!DOCTYPE html>
@@ -50,7 +69,7 @@ a {{
 }}
 
 .hero {{
-  min-height: 260px;
+  min-height: 340px;
   padding: 42px 28px;
   background:
     linear-gradient(120deg, rgba(0,0,0,.35), rgba(0,0,0,.88)),
@@ -93,7 +112,7 @@ a {{
 
 .wrapper {{
   max-width: 1180px;
-  margin: -56px auto 80px;
+  margin: -90px auto 80px;
   padding: 0 20px;
 }}
 
@@ -273,7 +292,7 @@ a {{
   <div class="hero-inner">
     <div class="logo">🏋️ Gymtracker</div>
     <h1>{title}</h1>
-    <p>Moderne Auslastungsanalyse für dein AI Fitness Studio. Automatisch gesammelt, visualisiert und täglich aktualisiert.</p>
+    <p>Studio-Auslastung automatisch gemessen, visualisiert und täglich aktualisiert.</p>
   </div>
 </header>
 
@@ -379,7 +398,7 @@ def build() -> None:
             for png in yearly_pngs:
                 charts += f"""
 <div class="chart-card">
-  <h3>{png.stem.replace("_", " ").title()}</h3>
+  <h3>{nice_chart_name(png.name)}</h3>
   <img src="{png.name}" alt="{png.name}">
 </div>
 """
@@ -416,7 +435,7 @@ def build() -> None:
                 for png in monthly_pngs:
                     charts += f"""
 <div class="chart-card">
-  <h3>{png.stem.replace("_", " ").title()}</h3>
+  <h3>{nice_chart_name(png.name)}</h3>
   <img src="{png.name}" alt="{png.name}">
 </div>
 """
@@ -444,7 +463,7 @@ def build() -> None:
                     for png in day_pngs:
                         charts += f"""
 <div class="chart-card">
-  <h3>{png.stem.replace("_", " ").title()}</h3>
+  <h3>{nice_chart_name(png.name)}</h3>
   <img src="{png.name}" alt="{png.name}">
 </div>
 """
