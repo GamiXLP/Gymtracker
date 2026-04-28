@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path("docs")
-DATA_DIR = Path("data/plots")
+DATA_DIR = Path("studios")
 
 
 def write_page(path, title, content):
